@@ -158,20 +158,31 @@ public class MessageActivity extends ActionBarActivity implements Runnable {
                     //data.add(0, item);
                     JSONObject json = new JSONObject(buffer.toString());
                     JSONArray jMsgArr = json.getJSONArray("msg");
-//                    System.out.println("# msg = " + jMsg.length());
 
-                    for(int numMsg=0; numMsg < jMsgArr.length(); numMsg++)
+                    System.out.println("# msg = " + jMsgArr.length());
+
+                    if(jMsgArr.length() > 0)
                     {
-//                        System.out.println("data size = " + numData + " and num msg = " + numMsg);
-                        JSONObject jMsg = jMsgArr.getJSONObject(numMsg);
-                        System.out.println(jMsg.getString("message"));
 
-                        Map<String, String> item = new HashMap<String, String>();
-                        item.put("user", jMsg.getString("user"));
-                        item.put("message", jMsg.getString("message"));
-                        data.add(numMsg, item);
+//                        int i = 0;
+//                        for (int numMsg = jMsgArr.length()-1; numMsg>=0; numMsg--,i++)
+                        for(int numMsg=0; numMsg < jMsgArr.length(); numMsg++)
+                        {
+//                        System.out.println("data size = " + numData + " and num msg = " + numMsg);
+                            JSONObject jMsg = jMsgArr.getJSONObject(numMsg);
+                            System.out.println(jMsg.getString("message"));
+
+                            Map<String, String> item = new HashMap<String, String>();
+                            item.put("user", jMsg.getString("user"));
+                            item.put("message", jMsg.getString("message"));
+                            data.add(0, item);
+//                            data.add(i, item);
 
                         timestamp = jMsg.getInt("time");
+                        }
+
+//                        JSONObject jLastMsg = jMsgArr.getJSONObject(jMsgArr.length()-1);
+//                        timestamp = jLastMsg.getInt("time");
                     }
 
                 }
@@ -246,6 +257,9 @@ public class MessageActivity extends ActionBarActivity implements Runnable {
                         "Successfully post your status",
                         Toast.LENGTH_SHORT);
                 t.show();
+
+                LoadMessageTask task = new LoadMessageTask();
+                task.execute();
             }
             else {
                 Toast t = Toast.makeText(MessageActivity.this.getApplicationContext(),
