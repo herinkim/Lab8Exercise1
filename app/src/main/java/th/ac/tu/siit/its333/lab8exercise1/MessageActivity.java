@@ -47,6 +47,7 @@ public class MessageActivity extends ActionBarActivity implements Runnable {
     String user;
     long lastUpdate = 0;
     Handler handler;
+    int scheduleUpdateTime = 10000;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,11 +67,16 @@ public class MessageActivity extends ActionBarActivity implements Runnable {
         user = i.getStringExtra("user");
 
         handler = new Handler();
-        handler.postDelayed(this, 30000);
+        handler.postDelayed(this, scheduleUpdateTime);
     }
 
     @Override
-    public void run() {
+    public void run()
+    {
+        LoadMessageTask task = new LoadMessageTask();
+        task.execute();
+
+        handler.postDelayed(this, scheduleUpdateTime); //execute again after another 30 seconds
     }
 
     @Override
@@ -105,6 +111,13 @@ public class MessageActivity extends ActionBarActivity implements Runnable {
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_refresh) {
+            System.out.println("REFRESH");
+            handler.removeCallbacks(this);
+
+            LoadMessageTask task = new LoadMessageTask();
+            task.execute();
+
+            handler.postDelayed(this, scheduleUpdateTime);
 
             return true;
         }
@@ -138,15 +151,31 @@ public class MessageActivity extends ActionBarActivity implements Runnable {
 
                     Log.e("LoadMessageTask", buffer.toString());
                     //Parsing JSON and displaying messages
-
+//                    Map<String, String> item = new HashMap<String, String>();
                     //To append a new message:
-                    //Map<String, String> item = new HashMap<String, String>();
                     //item.put("user", u);
                     //item.put("message", m);
                     //data.add(0, item);
                     JSONObject json = new JSONObject(buffer.toString());
+                    JSONArray jMsgArr = json.getJSONArray("msg");
+//                    System.out.println("# msg = " + jMsg.length());
+
+                    for(int numMsg=0; numMsg < jMsgArr.length(); numMsg++)
+                    {
+//                        System.out.println("data size = " + numData + " and num msg = " + numMsg);
+                        JSONObject jMsg = jMsgArr.getJSONObject(numMsg);
+                        System.out.println(jMsg.getString("message"));
+
+                        Map<String, String> item = new HashMap<String, String>();
+                        item.put("user", jMsg.getString("user"));
+                        item.put("message", jMsg.getString("message"));
+                        data.add(numMsg, item);
+
+                        timestamp = jMsg.getInt("time");
+                    }
 
                 }
+                return true;
             } catch (MalformedURLException e) {
                 Log.e("LoadMessageTask", "Invalid URL");
             } catch (IOException e) {
@@ -181,7 +210,31 @@ public class MessageActivity extends ActionBarActivity implements Runnable {
             HttpClient h = new DefaultHttpClient();
             HttpPost p = new HttpPost("http://ict.siit.tu.ac.th/~cholwich/microblog/post.php");
 
+            JSONObject newObject = new JSONObject();
 
+            System.out.println("post user = " + user);
+            System.out.println("post message = " + message);
+
+
+            List<NameValuePair> values = new ArrayList<NameValuePair>();
+            values.add(new BasicNameValuePair("user", user));
+            values.add(new BasicNameValuePair("message", message));
+            try {
+                p.setEntity(new UrlEncodedFormEntity(values));
+                HttpResponse response = h.execute(p);
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(response.getEntity().getContent()));
+                while((line = reader.readLine()) != null) {
+                    buffer.append(line);
+                }
+                return true;
+            } catch (UnsupportedEncodingException e) {
+                Log.e("Error", "Invalid encoding");
+            } catch (ClientProtocolException e) {
+                Log.e("Error", "Error in posting a message");
+            } catch (IOException e) {
+                Log.e("Error", "I/O Exception");
+            }
 
             return false;
         }
